@@ -16,10 +16,15 @@ def map_gaze_to_turning(gaze_x):
     Returns:
         A turning value where 0.5 is straight, >0.5 is right, <0.5 is left.
     """
+    # Create a small deadzone in the center for stability
     deadzone = 0.02
     if abs(gaze_x - 0.5) < deadzone:
-        return 0.5
-    sensitivity = 6
+        return 0.5  # Center position (go straight)
+
+    # Apply sensitivity scaling
+    sensitivity = 8
+
+    # Calculate turning value with sensitivity adjustment
     turning_value = 0.5 + (gaze_x - 0.5) * sensitivity
     return max(0, min(1, turning_value))
 
