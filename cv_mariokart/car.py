@@ -1,4 +1,5 @@
 from .controller import Controller, Trigger, Button, Stick
+import time
 
 
 class Car:
@@ -33,4 +34,5 @@ class Car:
         """Use item with the L Trigger amount does not matter"""
         print("Using item...")
         self.ctrl.press_trigger(Trigger.L, 1.0)
-        self.ctrl.press_trigger(Trigger.L, 0.5)
+        time.sleep(1)
+        self.ctrl.press_trigger(Trigger.L, 0.0)
