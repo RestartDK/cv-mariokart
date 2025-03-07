@@ -2,8 +2,8 @@ from .controller import Controller, Button, Stick, Trigger
 from .utils import find_dolphin_dir
 from .car import Car
 from eyetracking.eyetracking import EyeTracker
+from blinking import BlinkDetector
 import time
-
 
 def map_gaze_to_turning(gaze_x):
     """
@@ -13,83 +13,65 @@ def map_gaze_to_turning(gaze_x):
         gaze_x: Normalized gaze x-coordinate (0-1)
 
     Returns:
-        A turning value where 0.5 is straight, >0.5 is right, <0.5 is left
+        A turning value where 0.5 is straight, >0.5 is right, <0.5 is left.
     """
-    # Create a small deadzone in the center for stability
     deadzone = 0.1
     if abs(gaze_x - 0.5) < deadzone:
-        return 0.5  # Center position (go straight)
-
-    # Apply sensitivity scaling
+        return 0.5
     sensitivity = 1.5
-
-    # Calculate turning value with sensitivity adjustment
     turning_value = 0.5 + (gaze_x - 0.5) * sensitivity
-
-    # Ensure values are within 0-1 range
-    turning_value = max(0, min(1, turning_value))
-
-    return turning_value
-
+    return max(0, min(1, turning_value))
 
 def run_with_eye_tracking(car):
     """
-    Control the car with eye tracking input.
+    Control the car with both eye tracking and blink detection.
 
-    Args:
-        car: An initialized Car instance
+    Gaze is used for turning, while blink events trigger actions:
+      - Blink right when turning left (turning_value < 0.5) → Drift.
+      - Blink left when turning right (turning_value > 0.5) → Drift.
+      - Blink both → Use item.
     """
-    # Initialize eye tracker
-    tracker = EyeTracker(
-        show_windows=True,
-    )
-
+    # Initialize both trackers
+    tracker = EyeTracker(show_windows=True)
+    blink_detector = BlinkDetector(show_windows=True)
+    
     try:
         print("Eye tracking activated. Position yourself with face clearly visible.")
-        print("Press 'q' in the eye tracking window or ^C to stop.")
+        print("Press 'q' in the windows or ^C to stop.")
         print("- Look left/right to turn")
-        print("- Look to bottom-right corner to use item")
-        print("- Look to bottom-left corner to drift")
+        print("- Blink right when turning left to drift")
+        print("- Blink left when turning right to drift")
+        print("- Blink both to use item")
 
-        # Start driving forward
         car.drive_forward()
 
-        # Main control loop
         while True:
-            # Get normalized gaze coordinates (0-1 range)
-            gaze_x, gaze_y = tracker.update()
-            # print(gaze_x)
-
-            # Map gaze_x to turning value
+            # Get gaze data for turning
+            gaze = tracker.update()
+            if gaze is None:
+                continue
+            gaze_x, gaze_y = gaze
             turning_value = map_gaze_to_turning(gaze_x)
-            print(turning_value)
-
-            # Apply turning
             car.turn(turning_value)
+            
+            # Get blink event from the blink detector
+            blink_event, _ = blink_detector.update()
+            if blink_event == "Both Blink":
+                car.use_item()
+            elif blink_event == "Right Blink" and turning_value < 0.5:
+                car.drift()
+            elif blink_event == "Left Blink" and turning_value > 0.5:
+                car.drift()
+            else:
+                car.stop_drift()
 
-            # # Use item when looking at bottom right
-            # if gaze_x > 0.8 and gaze_y > 0.8:
-            #     car.use_item()
-            #
-            # # Drift when looking at bottom left
-            # if gaze_x < 0.2 and gaze_y > 0.8:
-            #     car.drift()
-            # else:
-            #     car.stop_drift()
-            #
-            # # Check for quit key in eye tracker window
-            # if tracker.check_key():
-            #     break
-
-            # Add a small delay to avoid overwhelming the controller
             time.sleep(0.03)  # ~30 fps update rate
-
+            
     finally:
-        # Stop the car and clean up resources
         car.stop_car()
         tracker.release()
+        blink_detector.release()
         print("Eye tracking stopped")
-
 
 def main():
     dolphin_dir = find_dolphin_dir()
@@ -102,15 +84,9 @@ def main():
         print("Start dolphin now. Press ^C to stop.")
         ctrl_path = dolphin_dir + "/Pipes/pipe"
         ctrl = Controller(ctrl_path)
-
-        # Create car instance
         car = Car(ctrl)
-
-        # Use the car with eye tracking
-        with ctrl:  # Use context manager to handle opening/closing the pipe
-            # Run with eye tracking
+        with ctrl:
             run_with_eye_tracking(car)
-
     except KeyboardInterrupt:
         print("Stopping...")
     finally:
@@ -119,7 +95,6 @@ def main():
             ctrl.reset()
             print("Controller reset complete")
         print("Stopped")
-
 
 if __name__ == "__main__":
     main()

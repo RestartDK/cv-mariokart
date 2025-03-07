@@ -1,7 +1,6 @@
 from .controller import Controller, Trigger, Button, Stick
 import time
 
-
 class Car:
     def __init__(self, ctrl: Controller) -> None:
         self.ctrl = ctrl
@@ -12,26 +11,26 @@ class Car:
         self.ctrl.press_button(Button.A)
 
     def stop_car(self):
-        """Release A to stop the car"""
-        print("Stopping car...")  # Fixed the message here
+        """Release A to stop the car."""
+        print("Stopping car...")
         self.ctrl.release_button(Button.A)
 
     def turn(self, x: float):
-        """Turn right with x > 0.5 and turn left when x < 0.5"""
+        """Turn right when x > 0.5 and turn left when x < 0.5."""
         self.ctrl.tilt_stick(Stick.MAIN, x, 0.5)
 
     def drift(self):
-        """Perform a drift (using R Trigger + direction)."""
+        """Perform a drift using the R Trigger."""
         print("Drifting...")
         self.ctrl.press_trigger(Trigger.R, 1.0)
 
     def stop_drift(self):
-        """Perform a drift (using R Trigger + direction)."""
-        print("Stopping drift...")  # Fixed the message here
+        """Stop drifting by releasing the R Trigger."""
+        print("Stopping drift...")
         self.ctrl.press_trigger(Trigger.R, 0.0)
 
     def use_item(self):
-        """Use item with the L Trigger amount does not matter"""
+        """Use an item by activating the L Trigger."""
         print("Using item...")
         self.ctrl.press_trigger(Trigger.L, 1.0)
         time.sleep(1)
