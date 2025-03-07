@@ -5,6 +5,8 @@
 - [x] Make driving test class to make sure all controls have been mapped correctly in game
 - [x] Make driving test class to make sure all controls have been mapped correctly in game
 - [x] Make sketch of the axis to focus on with CV algorithm
-- [ ] Make the eye tracking algorithm with opencv
-- [ ] Integrate eye tracking to coordinates for turning
-- [ ] Make blinking functionality for using the item
+- [x] Make the eye tracking algorithm with opencv
+- [x] Integrate eye tracking to coordinates for turning
+- [ ] Make blinking functionality for using the item and drifting
+- [ ] Fine tune controls to make it smooth
+- [ ] EXTRA: allows user to control forward and backward
