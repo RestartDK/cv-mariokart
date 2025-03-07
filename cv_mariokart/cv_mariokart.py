@@ -1,4 +1,4 @@
-from .controller import Controller, Button, Stick, Trigger
+from .controller import Controller
 from .utils import find_dolphin_dir
 from .car import Car
 from eyetracking.eyetracking import EyeTracker
@@ -16,12 +16,12 @@ def map_gaze_to_turning(gaze_x):
         A turning value where 0.5 is straight, >0.5 is right, <0.5 is left
     """
     # Create a small deadzone in the center for stability
-    deadzone = 0.1
+    deadzone = 0.02
     if abs(gaze_x - 0.5) < deadzone:
         return 0.5  # Center position (go straight)
 
     # Apply sensitivity scaling
-    sensitivity = 1.5
+    sensitivity = 8
 
     # Calculate turning value with sensitivity adjustment
     turning_value = 0.5 + (gaze_x - 0.5) * sensitivity
@@ -41,15 +41,12 @@ def run_with_eye_tracking(car):
     """
     # Initialize eye tracker
     tracker = EyeTracker(
-        show_windows=True,
+        show_windows=False,
     )
 
     try:
         print("Eye tracking activated. Position yourself with face clearly visible.")
         print("Press 'q' in the eye tracking window or ^C to stop.")
-        print("- Look left/right to turn")
-        print("- Look to bottom-right corner to use item")
-        print("- Look to bottom-left corner to drift")
 
         # Start driving forward
         car.drive_forward()
@@ -58,7 +55,6 @@ def run_with_eye_tracking(car):
         while True:
             # Get normalized gaze coordinates (0-1 range)
             gaze_x, gaze_y = tracker.update()
-            # print(gaze_x)
 
             # Map gaze_x to turning value
             turning_value = map_gaze_to_turning(gaze_x)
@@ -66,20 +62,6 @@ def run_with_eye_tracking(car):
 
             # Apply turning
             car.turn(turning_value)
-
-            # # Use item when looking at bottom right
-            # if gaze_x > 0.8 and gaze_y > 0.8:
-            #     car.use_item()
-            #
-            # # Drift when looking at bottom left
-            # if gaze_x < 0.2 and gaze_y > 0.8:
-            #     car.drift()
-            # else:
-            #     car.stop_drift()
-            #
-            # # Check for quit key in eye tracker window
-            # if tracker.check_key():
-            #     break
 
             # Add a small delay to avoid overwhelming the controller
             time.sleep(0.03)  # ~30 fps update rate
