@@ -172,3 +172,22 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+computer_vision/pyvenv.cfg
+computer_vision/bin/activate
+computer_vision/bin/activate.csh
+computer_vision/bin/activate.fish
+computer_vision/bin/Activate.ps1
+computer_vision/bin/f2py
+computer_vision/bin/fonttools
+computer_vision/bin/pip
+computer_vision/bin/pip3
+computer_vision/bin/pip3.10
+computer_vision/bin/pyftmerge
+computer_vision/bin/pyftsubset
+computer_vision/bin/python
+computer_vision/bin/python3
+computer_vision/bin/python3.10
+computer_vision/bin/range-detector
+computer_vision/bin/ttx
+computer_vision/bin/wheel
+computer_vision/share/man/man1/ttx.1
