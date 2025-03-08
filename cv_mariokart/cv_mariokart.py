@@ -1,9 +1,10 @@
-from .controller import Controller, Button, Stick, Trigger
+from .controller import Controller
 from .utils import find_dolphin_dir
 from .car import Car
 from eyetracking.eyetracking import EyeTracker
-from blinking import BlinkDetector
+from .blinking import BlinkDetector
 import time
+
 
 def map_gaze_to_turning(gaze_x):
     """
@@ -15,12 +16,18 @@ def map_gaze_to_turning(gaze_x):
     Returns:
         A turning value where 0.5 is straight, >0.5 is right, <0.5 is left.
     """
-    deadzone = 0.1
+    # Create a small deadzone in the center for stability
+    deadzone = 0.02
     if abs(gaze_x - 0.5) < deadzone:
-        return 0.5
-    sensitivity = 1.5
+        return 0.5  # Center position (go straight)
+
+    # Apply sensitivity scaling
+    sensitivity = 8
+
+    # Calculate turning value with sensitivity adjustment
     turning_value = 0.5 + (gaze_x - 0.5) * sensitivity
     return max(0, min(1, turning_value))
+
 
 def run_with_eye_tracking(car):
     """
@@ -80,12 +87,13 @@ def run_with_eye_tracking(car):
                 car.stop_drift()
 
             time.sleep(0.03)  # ~30 fps update rate
-            
+
     finally:
         car.stop_car()
         tracker.release()
         blink_detector.release()
         print("Eye tracking stopped")
+
 
 def main():
     dolphin_dir = find_dolphin_dir()
@@ -109,6 +117,7 @@ def main():
             ctrl.reset()
             print("Controller reset complete")
         print("Stopped")
+
 
 if __name__ == "__main__":
     main()

@@ -67,8 +67,11 @@ class EyeTracker:
         # Display options
         self.show_windows = show_windows
         if show_windows:
-            cv2.namedWindow("Eye Tracking")
-            cv2.namedWindow("Screen View")
+            cv2.namedWindow("Eye Tracking", cv2.WINDOW_NORMAL)
+            cv2.namedWindow("Screen View", cv2.WINDOW_NORMAL)
+            cv2.resizeWindow("Eye Tracking", 640, 480)
+            cv2.resizeWindow("Screen View", 800, 500)
+            cv2.waitKey(100)  # Add this delay
 
         # Store the latest gaze coordinates
         self.current_gaze = (self.screen_width // 2, self.screen_height // 2)
@@ -275,22 +278,49 @@ class EyeTracker:
                 2,
             )
 
+    # def _show_frames(self, frame):
+    #     """Show the camera and screen visualization frames."""
+    #     # Add quit instructions
+    #     cv2.putText(
+    #         frame,
+    #         "Press 'q' to quit",
+    #         (10, frame.shape[0] - 20),
+    #         cv2.FONT_HERSHEY_SIMPLEX,
+    #         0.7,
+    #         (255, 255, 255),
+    #         2,
+    #     )
+    #
+    #     # Show frames
+    #     cv2.imshow("Eye Tracking", frame)
+    #     cv2.imshow("Screen View", self.screen)
     def _show_frames(self, frame):
-        """Show the camera and screen visualization frames."""
-        # Add quit instructions
+        # Make the text more visible
         cv2.putText(
             frame,
             "Press 'q' to quit",
             (10, frame.shape[0] - 20),
             cv2.FONT_HERSHEY_SIMPLEX,
-            0.7,
-            (255, 255, 255),
+            1.0,  # Larger text
+            (0, 255, 255),  # Yellow color
+            3,  # Thicker lines
+        )
+
+        # Add a confirmation message
+        cv2.putText(
+            frame,
+            "Eye tracking active",
+            (10, 50),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            1.0,
+            (0, 255, 0),  # Green color
             2,
         )
 
         # Show frames
         cv2.imshow("Eye Tracking", frame)
         cv2.imshow("Screen View", self.screen)
+        cv2.waitKey(1)  # Make sure this is being called
 
     def check_key(self) -> bool:
         """
