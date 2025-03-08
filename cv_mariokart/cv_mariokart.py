@@ -1,3 +1,5 @@
+import os
+import sys
 import time
 from cv_mariokart.utils.controller import Controller
 from cv_mariokart.utils.dolphin import find_dolphin_dir
