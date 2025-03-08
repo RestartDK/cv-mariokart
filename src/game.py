@@ -1,9 +1,10 @@
-from .controller import Controller
-from .utils import find_dolphin_dir
-from .car import Car
-from eyetracking.eyetracking import EyeTracker
-from .blinking import BlinkDetector
 import time
+
+from utils.car import Car
+from utils.controller import Controller
+from utils.dolphin import find_dolphin_dir
+from vision.blinking import BlinkDetector
+from vision.eyetracking import EyeTracker
 
 
 def map_gaze_to_turning(gaze_x):

@@ -1,6 +1,7 @@
 import os
 import unittest
-from .controller import Button, Controller, Trigger, Stick
+
+from utils.controller import Button, Controller, Stick, Trigger
 
 
 class ControllerTest(unittest.TestCase):

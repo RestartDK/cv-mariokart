@@ -1,7 +1,8 @@
 import time
-from .controller import Controller
-from .car import Car
-from .utils import find_dolphin_dir
+
+from utils.car import Car
+from utils.controller import Controller
+from utils.dolphin import find_dolphin_dir
 
 
 class DrivingTest:

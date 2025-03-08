@@ -1,13 +1,13 @@
 import cv2
 import mediapipe as mp
-import numpy as np
 from scipy.spatial import distance as dist
+
 
 class BlinkDetector:
     def __init__(self, show_windows=False):
         """
         Initialize the blink detector.
-        
+
         Args:
             show_windows (bool): If True, display a window with annotated video.
         """
@@ -18,22 +18,36 @@ class BlinkDetector:
             max_num_faces=1,
             refine_landmarks=True,
             min_detection_confidence=0.5,
-            min_tracking_confidence=0.5
+            min_tracking_confidence=0.5,
         )
         # Inverted indices: use the indices originally assigned for the right eye as left and vice versa.
-        self.LEFT_EYE_IDX = [33, 160, 158, 133, 153, 144]    # Originally for the right eye.
-        self.RIGHT_EYE_IDX = [362, 385, 387, 263, 373, 380]   # Originally for the left eye.
+        self.LEFT_EYE_IDX = [
+            33,
+            160,
+            158,
+            133,
+            153,
+            144,
+        ]  # Originally for the right eye.
+        self.RIGHT_EYE_IDX = [
+            362,
+            385,
+            387,
+            263,
+            373,
+            380,
+        ]  # Originally for the left eye.
 
         # Threshold parameters:
         # Single-eye threshold: an eye is considered closed if its EAR is below this value.
-        self.EYE_AR_THRESH_SINGLE = 0.25  
+        self.EYE_AR_THRESH_SINGLE = 0.25
         # Both-eye threshold: for a "Both Blink" event, require a stricter (lower) average EAR.
         self.EYE_AR_THRESH_BOTH = 0.22
 
     def eye_aspect_ratio(self, eye_points):
         """
         Compute the Eye Aspect Ratio (EAR) for 6 eye landmark points.
-        
+
         EAR = (||p2-p6|| + ||p3-p5||) / (2 * ||p1-p4||)
         """
         A = dist.euclidean(eye_points[1], eye_points[5])
@@ -44,7 +58,7 @@ class BlinkDetector:
     def update(self):
         """
         Capture a frame from the camera, process it to detect blink state, and return the blink event.
-        
+
         Returns:
             blink_event (str): One of "Left Blink", "Right Blink", "Both Blink", or "No Blink".
             frame (np.array): The annotated video frame.
@@ -82,14 +96,18 @@ class BlinkDetector:
             # Determine closed state per eye
             left_closed = left_ear < self.EYE_AR_THRESH_SINGLE
             right_closed = right_ear < self.EYE_AR_THRESH_SINGLE
-            both_closed_strong = ((left_ear + right_ear) / 2.0) < self.EYE_AR_THRESH_BOTH
+            both_closed_strong = (
+                (left_ear + right_ear) / 2.0
+            ) < self.EYE_AR_THRESH_BOTH
 
             # Determine blink event:
             if left_closed and right_closed:
                 if both_closed_strong:
                     blink_event = "Both Blink"
                 else:
-                    blink_event = "Left Blink" if left_ear < right_ear else "Right Blink"
+                    blink_event = (
+                        "Left Blink" if left_ear < right_ear else "Right Blink"
+                    )
             elif left_closed:
                 blink_event = "Left Blink"
             elif right_closed:
@@ -98,17 +116,38 @@ class BlinkDetector:
                 blink_event = "No Blink"
 
             # Draw landmarks for visualization
-            for (x, y) in left_eye_points:
+            for x, y in left_eye_points:
                 cv2.circle(frame, (x, y), 2, (0, 255, 0), -1)
-            for (x, y) in right_eye_points:
+            for x, y in right_eye_points:
                 cv2.circle(frame, (x, y), 2, (0, 255, 0), -1)
 
-            cv2.putText(frame, f"Left EAR: {left_ear:.2f}", (10, 30),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
-            cv2.putText(frame, f"Right EAR: {right_ear:.2f}", (10, 60),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
-            cv2.putText(frame, blink_event, (10, 90),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2)
+            cv2.putText(
+                frame,
+                f"Left EAR: {left_ear:.2f}",
+                (10, 30),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.6,
+                (0, 0, 255),
+                2,
+            )
+            cv2.putText(
+                frame,
+                f"Right EAR: {right_ear:.2f}",
+                (10, 60),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.6,
+                (0, 0, 255),
+                2,
+            )
+            cv2.putText(
+                frame,
+                blink_event,
+                (10, 90),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.8,
+                (255, 0, 0),
+                2,
+            )
 
         if self.show_windows:
             cv2.imshow("Blink Detector", frame)
