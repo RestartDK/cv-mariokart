@@ -1,5 +1,7 @@
-from .controller import Controller, Trigger, Button, Stick
 import time
+
+from controller import Button, Controller, Stick, Trigger
+
 
 class Car:
     def __init__(self, ctrl: Controller) -> None:
