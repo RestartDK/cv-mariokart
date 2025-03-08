@@ -1,6 +1,6 @@
 import time
 
-from controller import Button, Controller, Stick, Trigger
+from .controller import Button, Controller, Stick, Trigger
 
 
 class Car:
