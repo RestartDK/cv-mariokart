@@ -1,10 +1,12 @@
 import cv2
 import numpy as np
+import mediapipe as mp
 from typing import Tuple
+from scipy.spatial import distance as dist
 
 
 class EyeTracker:
-    """A class to handle eye tracking and provide gaze coordinates."""
+    """A class that combines eye tracking and blink detection capabilities."""
 
     def __init__(
         self,
@@ -16,7 +18,7 @@ class EyeTracker:
         show_windows: bool = False,
     ):
         """
-        Initialize the eye tracker.
+        Initialize the enhanced eye tracker.
 
         Args:
             camera_id: ID of the camera to use
@@ -35,7 +37,7 @@ class EyeTracker:
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, resolution[0])
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, resolution[1])
 
-        # Load cascades
+        # Load original cascades
         self.face_cascade = cv2.CascadeClassifier(
             cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
         )
@@ -76,6 +78,30 @@ class EyeTracker:
         # Store the latest gaze coordinates
         self.current_gaze = (self.screen_width // 2, self.screen_height // 2)
 
+        # Initialize MediaPipe for blink detection
+        self.mp_face_mesh = mp.solutions.face_mesh
+        self.face_mesh = self.mp_face_mesh.FaceMesh(
+            max_num_faces=1,
+            refine_landmarks=True,
+            min_detection_confidence=0.5,
+            min_tracking_confidence=0.5
+        )
+
+        # Eye landmarks indices
+        self.LEFT_EYE_IDX = [33, 160, 158, 133, 153, 144]  # Left eye landmarks
+        self.RIGHT_EYE_IDX = [362, 385, 387, 263, 373, 380]  # Right eye landmarks
+
+        # Blink detection parameters
+        self.EYE_AR_THRESH_SINGLE = 0.25  # Single eye blink threshold
+        self.EYE_AR_THRESH_BOTH = 0.22  # Both eyes blink threshold
+        
+        # Initialize latest blink event
+        self.current_blink = "No Blink"
+        
+        # Store frame dimensions
+        self.width = resolution[0]
+        self.height = resolution[1]
+
     def get_normalized_gaze(self) -> Tuple[float, float]:
         """
         Get the current gaze coordinates normalized to range [0,1].
@@ -86,25 +112,50 @@ class EyeTracker:
         x, y = self.current_gaze
         return x / self.screen_width, y / self.screen_height
 
-    def update(self) -> Tuple[float, float]:
+    def eye_aspect_ratio(self, eye_points):
         """
-        Update the eye tracker and return the current normalized gaze position.
+        Compute the Eye Aspect Ratio (EAR) for 6 eye landmark points.
+        
+        EAR = (||p2-p6|| + ||p3-p5||) / (2 * ||p1-p4||)
+        """
+        A = dist.euclidean(eye_points[1], eye_points[5])
+        B = dist.euclidean(eye_points[2], eye_points[4])
+        C = dist.euclidean(eye_points[0], eye_points[3])
+        return (A + B) / (2.0 * C)
+
+    def update(self) -> Tuple[Tuple[float, float], str]:
+        """
+        Update the eye tracker and return the current normalized gaze position and blink event.
 
         Returns:
-            Tuple of (x, y) where x and y are in range [0,1]
+            Tuple containing:
+                Tuple of (x, y) where x and y are in range [0,1]
+                String describing blink event ("No Blink", "Left Blink", "Right Blink", "Both Blink")
         """
         ret, frame = self.cap.read()
         if not ret:
-            return self.get_normalized_gaze()
+            return self.get_normalized_gaze(), self.current_blink
 
         # Flip horizontally for mirror effect
         frame = cv2.flip(frame, 1)
 
+        # Process for eye tracking (original method)
+        self._process_eye_tracking(frame)
+        
+        # Process for blink detection (using MediaPipe)
+        self._process_blink_detection(frame)
+        
+        # Show frames if needed
+        if self.show_windows:
+            self._show_frames(frame)
+
+        # Return normalized gaze position and blink event
+        return self.get_normalized_gaze(), self.current_blink
+
+    def _process_eye_tracking(self, frame):
+        """Process the frame for eye tracking using the original method."""
         # Convert to grayscale
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
-        # Detect faces
-        faces = self.face_cascade.detectMultiScale(gray, 1.3, 4, minSize=(80, 80))
 
         # Clear screen visualization if showing windows
         if self.show_windows:
@@ -116,6 +167,9 @@ class EyeTracker:
                 (50, 50, 50),
                 2,
             )
+
+        # Detect faces
+        faces = self.face_cascade.detectMultiScale(gray, 1.3, 4, minSize=(80, 80))
 
         # Process face and eyes if any detected
         if len(faces) > 0:
@@ -144,13 +198,6 @@ class EyeTracker:
 
             # Process eyes and update gaze
             self._process_eyes(eyes, roi_gray, roi_color, x, y, frame)
-
-        # Show frames if needed
-        if self.show_windows:
-            self._show_frames(frame)
-
-        # Return normalized gaze position
-        return self.get_normalized_gaze()
 
     def _process_eyes(self, eyes, roi_gray, roi_color, face_x, face_y, frame):
         """Process detected eyes and update gaze coordinates."""
@@ -211,7 +258,7 @@ class EyeTracker:
                             cv2.putText(
                                 frame,
                                 eye_text,
-                                (10, 30 + i * 30),
+                                (10, 150 + i * 30),
                                 cv2.FONT_HERSHEY_SIMPLEX,
                                 0.6,
                                 (0, 255, 0),
@@ -278,23 +325,69 @@ class EyeTracker:
                 2,
             )
 
-    # def _show_frames(self, frame):
-    #     """Show the camera and screen visualization frames."""
-    #     # Add quit instructions
-    #     cv2.putText(
-    #         frame,
-    #         "Press 'q' to quit",
-    #         (10, frame.shape[0] - 20),
-    #         cv2.FONT_HERSHEY_SIMPLEX,
-    #         0.7,
-    #         (255, 255, 255),
-    #         2,
-    #     )
-    #
-    #     # Show frames
-    #     cv2.imshow("Eye Tracking", frame)
-    #     cv2.imshow("Screen View", self.screen)
+    def _process_blink_detection(self, frame):
+        """Process the frame for blink detection using MediaPipe."""
+        # Convert to RGB for MediaPipe
+        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        
+        # Process with MediaPipe
+        results = self.face_mesh.process(rgb_frame)
+        
+        if results.multi_face_landmarks:
+            face_landmarks = results.multi_face_landmarks[0]
+            
+            # Extract eye landmark coordinates
+            left_eye_points = []
+            right_eye_points = []
+            
+            for idx in self.LEFT_EYE_IDX:
+                lm = face_landmarks.landmark[idx]
+                left_eye_points.append((int(lm.x * self.width), int(lm.y * self.height)))
+                
+            for idx in self.RIGHT_EYE_IDX:
+                lm = face_landmarks.landmark[idx]
+                right_eye_points.append((int(lm.x * self.width), int(lm.y * self.height)))
+
+            # Compute EAR for each eye
+            left_ear = self.eye_aspect_ratio(left_eye_points)
+            right_ear = self.eye_aspect_ratio(right_eye_points)
+
+            # Determine closed state per eye
+            left_closed = left_ear < self.EYE_AR_THRESH_SINGLE
+            right_closed = right_ear < self.EYE_AR_THRESH_SINGLE
+            both_closed_strong = ((left_ear + right_ear) / 2.0) < self.EYE_AR_THRESH_BOTH
+
+            # Determine blink event
+            if left_closed and right_closed:
+                if both_closed_strong:
+                    blink_event = "Both Blink"
+                else:
+                    blink_event = "Left Blink" if left_ear < right_ear else "Right Blink"
+            elif left_closed:
+                blink_event = "Left Blink"
+            elif right_closed:
+                blink_event = "Right Blink"
+            else:
+                blink_event = "No Blink"
+                
+            self.current_blink = blink_event
+
+            # Draw landmarks for visualization
+            if self.show_windows:
+                for (x, y) in left_eye_points:
+                    cv2.circle(frame, (x, y), 2, (255, 0, 255), -1)
+                for (x, y) in right_eye_points:
+                    cv2.circle(frame, (x, y), 2, (255, 0, 255), -1)
+
+                cv2.putText(frame, f"Left EAR: {left_ear:.2f}", (10, 30),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+                cv2.putText(frame, f"Right EAR: {right_ear:.2f}", (10, 60),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+                cv2.putText(frame, f"Blink: {blink_event}", (10, 90),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2)
+
     def _show_frames(self, frame):
+        """Show the camera and screen visualization frames."""
         # Make the text more visible
         cv2.putText(
             frame,
@@ -310,7 +403,7 @@ class EyeTracker:
         cv2.putText(
             frame,
             "Eye tracking active",
-            (10, 50),
+            (10, 120),
             cv2.FONT_HERSHEY_SIMPLEX,
             1.0,
             (0, 255, 0),  # Green color
@@ -320,7 +413,7 @@ class EyeTracker:
         # Show frames
         cv2.imshow("Eye Tracking", frame)
         cv2.imshow("Screen View", self.screen)
-        cv2.waitKey(1)  # Make sure this is being called
+        cv2.waitKey(1)
 
     def check_key(self) -> bool:
         """
