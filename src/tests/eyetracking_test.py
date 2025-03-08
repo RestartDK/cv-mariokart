@@ -8,7 +8,7 @@ from vision.eyetracking import EyeTracker
 
 
 def main():
-    eye_tracker = EyeTracker(show_wiqndows=True)
+    eye_tracker = EyeTracker(show_windows=True)
 
     try:
         print("Press 'q' to quit.")
