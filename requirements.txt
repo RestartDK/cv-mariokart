@@ -3,3 +3,4 @@ opencv-python
 dlib
 pillow
 scikit-learn
+mediapipe
