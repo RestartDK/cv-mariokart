@@ -1,5 +1,10 @@
-from ..vision.eyetracking import EyeTracker
-import cv2
+import sys
+import os
+
+# Ensure the project root directory is in sys.path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from vision.eyetracking import EyeTracker
 
 def main():
     # Instantiate the EnhancedEyeTracker with window display enabled.
