@@ -1,11 +1,8 @@
-import time
-
-from utils.car import Car
 from utils.controller import Controller
 from utils.dolphin import find_dolphin_dir
-from vision.blinking import BlinkDetector
-from vision.eyetracking import EyeTracker
-
+from utils.car import Car
+from vision.eyetracking import EyeTracker  # New integrated eye tracking class
+import time
 
 def map_gaze_to_turning(gaze_x):
     """
@@ -17,31 +14,24 @@ def map_gaze_to_turning(gaze_x):
     Returns:
         A turning value where 0.5 is straight, >0.5 is right, <0.5 is left.
     """
-    # Create a small deadzone in the center for stability
     deadzone = 0.02
     if abs(gaze_x - 0.5) < deadzone:
         return 0.5  # Center position (go straight)
-
-    # Apply sensitivity scaling
     sensitivity = 8
-
-    # Calculate turning value with sensitivity adjustment
     turning_value = 0.5 + (gaze_x - 0.5) * sensitivity
     return max(0, min(1, turning_value))
 
-
 def run_with_eye_tracking(car):
     """
-    Control the car with both eye tracking and blink detection.
+    Control the car with eye tracking and integrated blink detection.
 
-    Gaze is used for turning, while blink events trigger actions:
-      - Blink right when turning left (turning_value < 0.5) → Drift.
-      - Blink left when turning right (turning_value > 0.5) → Drift.
-      - Blink both → Use item.
+    Gaze is used for turning:
+      - When turning left (turning_value < 0.5) and a "Right Blink" is detected, drift.
+      - When turning right (turning_value > 0.5) and a "Left Blink" is detected, drift.
+      - A sustained both-eye blink (held for >1 second) triggers using an item.
     """
-    # Initialize both trackers
-    tracker = EyeTracker(show_windows=False)
-    blink_detector = BlinkDetector(show_windows=False)
+    tracker = EyeTracker(show_windows=True)
+    both_blink_start_time = None
 
     try:
         print("Eye tracking activated. Position yourself with face clearly visible.")
@@ -49,24 +39,34 @@ def run_with_eye_tracking(car):
         print("- Look left/right to turn")
         print("- Blink right when turning left to drift")
         print("- Blink left when turning right to drift")
-        print("- Blink both to use item")
+        print("- Blink both for >1 second to use an item")
 
         car.drive_forward()
 
         while True:
-            # Get gaze data for turning
-            gaze = tracker.update()
+            # Update eye tracking to get normalized gaze and blink event.
+            gaze, blink_event = tracker.update()
             if gaze is None:
                 continue
             gaze_x, gaze_y = gaze
             turning_value = map_gaze_to_turning(gaze_x)
             car.turn(turning_value)
 
-            # Get blink event from the blink detector
-            blink_event, _ = blink_detector.update()
+            current_time = time.time()
+
+            # Check for a sustained both-eye blink (held > 1 second) to use an item.
             if blink_event == "Both Blink":
-                car.use_item()
-            elif blink_event == "Right Blink" and turning_value < 0.5:
+                if both_blink_start_time is None:
+                    both_blink_start_time = current_time
+                elif current_time - both_blink_start_time >= 1.0:
+                    car.use_item()
+                    # Reset so item use is triggered only once per sustained blink.
+                    both_blink_start_time = None
+            else:
+                both_blink_start_time = None
+
+            # For drifting: if right blink while turning left, or left blink while turning right.
+            if blink_event == "Right Blink" and turning_value < 0.5:
                 car.drift()
             elif blink_event == "Left Blink" and turning_value > 0.5:
                 car.drift()
@@ -78,9 +78,7 @@ def run_with_eye_tracking(car):
     finally:
         car.stop_car()
         tracker.release()
-        blink_detector.release()
         print("Eye tracking stopped")
-
 
 def main():
     dolphin_dir = find_dolphin_dir()
@@ -104,7 +102,6 @@ def main():
             ctrl.reset()
             print("Controller reset complete")
         print("Stopped")
-
 
 if __name__ == "__main__":
     main()
