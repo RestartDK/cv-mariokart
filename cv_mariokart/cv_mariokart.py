@@ -27,26 +27,28 @@ def run_with_eye_tracking(car):
     Control the car with both eye tracking and blink detection.
 
     Gaze is used for turning, while blink events trigger actions:
-      - Blink right when turning left (turning_value < 0.5) → Drift.
-      - Blink left when turning right (turning_value > 0.5) → Drift.
-      - Blink both → Use item.
+      - When turning left (turning_value < 0.5), a right blink triggers drift.
+      - When turning right (turning_value > 0.5), a left blink triggers drift.
+      - A sustained both-eye blink (held for >1 second) triggers using an item.
     """
-    # Initialize both trackers
+    # Initialize both trackers.
     tracker = EyeTracker(show_windows=True)
     blink_detector = BlinkDetector(show_windows=True)
     
+    both_blink_start_time = None
+
     try:
         print("Eye tracking activated. Position yourself with face clearly visible.")
         print("Press 'q' in the windows or ^C to stop.")
         print("- Look left/right to turn")
         print("- Blink right when turning left to drift")
         print("- Blink left when turning right to drift")
-        print("- Blink both to use item")
+        print("- Blink both for >1 second to use an item")
 
         car.drive_forward()
 
         while True:
-            # Get gaze data for turning
+            # Get gaze data for turning.
             gaze = tracker.update()
             if gaze is None:
                 continue
@@ -54,11 +56,23 @@ def run_with_eye_tracking(car):
             turning_value = map_gaze_to_turning(gaze_x)
             car.turn(turning_value)
             
-            # Get blink event from the blink detector
+            # Get blink event from the blink detector.
             blink_event, _ = blink_detector.update()
+            current_time = time.time()
+            
+            # Check for a sustained both-eye blink.
             if blink_event == "Both Blink":
-                car.use_item()
-            elif blink_event == "Right Blink" and turning_value < 0.5:
+                if both_blink_start_time is None:
+                    both_blink_start_time = current_time
+                elif current_time - both_blink_start_time >= 1.0:
+                    car.use_item()
+                    # Reset so that item use is triggered only once per sustained blink.
+                    both_blink_start_time = None
+            else:
+                both_blink_start_time = None
+
+            # For drifting, use single-eye blink events.
+            if blink_event == "Right Blink" and turning_value < 0.5:
                 car.drift()
             elif blink_event == "Left Blink" and turning_value > 0.5:
                 car.drift()
