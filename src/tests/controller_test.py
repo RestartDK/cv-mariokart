@@ -1,6 +1,11 @@
 import os
+import sys
 import unittest
-from .controller import Button, Controller, Trigger, Stick
+
+# Add the src directory to the path
+sys.path.insert(0, os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
+
+from utils.controller import Button, Controller, Stick, Trigger
 
 
 class ControllerTest(unittest.TestCase):
