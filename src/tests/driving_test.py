@@ -1,4 +1,9 @@
+import os
+import sys
 import time
+
+# Add the src directory to the path
+sys.path.insert(0, os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
 
 from utils.car import Car
 from utils.controller import Controller
