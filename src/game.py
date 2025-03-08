@@ -1,4 +1,11 @@
+import os
+import sys
 import time
+
+# Add the src directory to the path (if not already there)
+src_dir = os.path.dirname(os.path.abspath(__file__))
+if src_dir not in sys.path:
+    sys.path.insert(0, src_dir)
 
 from utils.car import Car
 from utils.controller import Controller
