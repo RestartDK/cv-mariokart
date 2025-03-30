@@ -1,9 +1,7 @@
-import os
-import sys
 import time
-from cv_mariokart.utils.controller import Controller
-from cv_mariokart.utils.dolphin import find_dolphin_dir
-from cv_mariokart.utils.car import Car
+from cv_mariokart.game.controller import Controller
+from cv_mariokart.game.dolphin import find_dolphin_dir
+from cv_mariokart.game.car import Car
 from cv_mariokart.vision.eyetracking import (
     EyeTracker,
 )
